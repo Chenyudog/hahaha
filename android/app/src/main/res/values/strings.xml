@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">时间管家</string>
+    <string name="notif_channel_timer">计时状态</string>
+    <string name="notif_channel_timer_desc">常驻显示当前正在计时的任务</string>
+    <string name="notif_channel_reminder">提醒</string>
+    <string name="notif_channel_reminder_desc">待办提醒、写计划提醒、计时超时提醒</string>
+</resources>
