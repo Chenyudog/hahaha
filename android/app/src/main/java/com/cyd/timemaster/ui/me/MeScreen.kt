@@ -39,7 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cyd.timemaster.util.parseHm
 
 @Composable
-fun MeScreen(vm: SettingsViewModel = viewModel()) {
+fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val context = LocalContext.current
     var alsoLock by remember { mutableStateOf(false) }
     var timePickerTarget by remember { mutableStateOf<String?>(null) }
@@ -127,11 +127,17 @@ fun MeScreen(vm: SettingsViewModel = viewModel()) {
             Switch(checked = vm.autoSync, onCheckedChange = { vm.updateAutoSync(it) })
         }
         Spacer(Modifier.height(8.dp))
-        Text(
-            "AI 复习与花费 · 云端备份将在 v0.6 / v0.7 开放",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        OutlinedButton(onClick = onOpenSpending, modifier = Modifier.fillMaxWidth()) {
+            Text("AI 花费统计")
+        }
+        if (!vm.paired) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "AI 复习与云端备份需要先完成上面的服务器配对",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 

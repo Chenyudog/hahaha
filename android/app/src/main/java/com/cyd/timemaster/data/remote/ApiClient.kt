@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 import java.util.concurrent.TimeUnit
 
@@ -23,9 +24,55 @@ data class PairResponse(
 @Serializable
 data class CountOk(val ok: Boolean = false)
 
+@Serializable
+data class ReviewRequest(val text: String, val purpose: String = "daily_review")
+
+@Serializable
+data class UsageInfo(
+    val model: String = "",
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+)
+
+@Serializable
+data class ReviewResponse(
+    val content: String,
+    val model: String = "",
+    val cost: Double = 0.0,
+    val usage: UsageInfo = UsageInfo(),
+)
+
+@Serializable
+data class SpendingItem(
+    val id: Int,
+    val ts: String,
+    val model: String = "",
+    @SerialName("prompt_tokens") val promptTokens: Int = 0,
+    @SerialName("completion_tokens") val completionTokens: Int = 0,
+    val cost: Double = 0.0,
+    val purpose: String = "",
+)
+
+@Serializable
+data class SpendingResponse(
+    @SerialName("calls_total") val callsTotal: Int = 0,
+    @SerialName("total_cost") val totalCost: Double = 0.0,
+    @SerialName("today_cost") val todayCost: Double = 0.0,
+    @SerialName("month_cost") val monthCost: Double = 0.0,
+    @SerialName("price_prompt_per_m") val pricePromptPerM: Double = 0.0,
+    @SerialName("price_completion_per_m") val priceCompletionPerM: Double = 0.0,
+    val items: List<SpendingItem> = emptyList(),
+)
+
 interface TimeApi {
     @POST("api/v1/pair")
     suspend fun pair(@Body body: PairRequest): PairResponse
+
+    @POST("api/v1/agent/review")
+    suspend fun review(@Body body: ReviewRequest): ReviewResponse
+
+    @GET("api/v1/agent/spending")
+    suspend fun spending(): SpendingResponse
 }
 
 object ApiClient {

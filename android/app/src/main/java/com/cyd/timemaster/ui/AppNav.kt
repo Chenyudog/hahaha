@@ -80,7 +80,10 @@ fun AppRoot() {
                 )
             }
             composable("todo") { TodoScreen() }
-            composable("me") { MeScreen() }
+            composable("me") { MeScreen(onOpenSpending = { navController.navigate("spending") }) }
+            composable("spending") {
+                com.cyd.timemaster.ui.agent.SpendingScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }

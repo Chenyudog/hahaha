@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
@@ -31,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -64,6 +66,7 @@ fun LogEditScreen(logUuid: String?, onDone: () -> Unit) {
     val date by vm.date.collectAsState()
     val content by vm.content.collectAsState()
     val images by vm.images.collectAsState()
+    val reviewState by vm.reviewState.collectAsState()
 
     val pickLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(9)
@@ -111,6 +114,21 @@ fun LogEditScreen(logUuid: String?, onDone: () -> Unit) {
                     .weight(1f),
             )
             Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { vm.requestReview() },
+                enabled = content.isNotBlank() && reviewState !is LogViewModel.ReviewState.Loading,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null)
+                Spacer(Modifier.size(6.dp))
+                Text(
+                    when (reviewState) {
+                        is LogViewModel.ReviewState.Loading -> "AI 正在复习巩固…"
+                        else -> "AI 复习巩固"
+                    }
+                )
+            }
+            Spacer(Modifier.height(8.dp))
             if (images.isNotEmpty()) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(images, key = { it.uuid }) { image ->
@@ -148,6 +166,33 @@ fun LogEditScreen(logUuid: String?, onDone: () -> Unit) {
                 Text("插入图片（可多选）")
             }
         }
+    }
+
+    // AI 复习结果弹窗
+    when (val state = reviewState) {
+        is LogViewModel.ReviewState.Success -> AlertDialog(
+            onDismissRequest = { vm.dismissReview() },
+            title = { Text("AI 复习巩固") },
+            text = {
+                Column {
+                    Text(state.content)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "本次花费 ¥%.4f".format(state.cost),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.dismissReview() }) { Text("知道了") } },
+        )
+        is LogViewModel.ReviewState.Error -> AlertDialog(
+            onDismissRequest = { vm.dismissReview() },
+            title = { Text("出错了") },
+            text = { Text(state.message) },
+            confirmButton = { TextButton(onClick = { vm.dismissReview() }) { Text("好的") } },
+        )
+        else -> Unit
     }
 
     if (showDatePicker) {

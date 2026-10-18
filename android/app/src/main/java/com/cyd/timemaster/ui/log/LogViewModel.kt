@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.cyd.timemaster.data.AppGraph
 import com.cyd.timemaster.data.db.DailyLog
 import com.cyd.timemaster.data.db.LogImage
+import com.cyd.timemaster.data.remote.ApiClient
+import com.cyd.timemaster.data.remote.ReviewRequest
 import com.cyd.timemaster.util.deleteQuietly
 import com.cyd.timemaster.util.newId
 import com.cyd.timemaster.util.nowIso
@@ -115,6 +117,43 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
                 logDao.delete(rowUuid)
             }
         }
+    }
+
+    // ---- AI 复习巩固（v0.6）----
+
+    sealed interface ReviewState {
+        data object Idle : ReviewState
+        data object Loading : ReviewState
+        data class Success(val content: String, val cost: Double) : ReviewState
+        data class Error(val message: String) : ReviewState
+    }
+
+    val reviewState = MutableStateFlow<ReviewState>(ReviewState.Idle)
+
+    fun requestReview() {
+        val text = content.value.trim()
+        if (text.isEmpty()) return
+        val settings = AppGraph.settings
+        if (!settings.isPaired) {
+            reviewState.value = ReviewState.Error("请先到「我的」页完成服务器配对")
+            return
+        }
+        reviewState.value = ReviewState.Loading
+        AppGraph.scope.launch {
+            try {
+                val resp = ApiClient.api(settings.serverBase, settings.token)
+                    .review(ReviewRequest(text = text))
+                reviewState.value = ReviewState.Success(resp.content, resp.cost)
+            } catch (e: Exception) {
+                reviewState.value = ReviewState.Error(
+                    "AI 调用失败：${e.message ?: "网络错误"}（确认电脑服务器已启动、手机与其在同一网络）"
+                )
+            }
+        }
+    }
+
+    fun dismissReview() {
+        reviewState.value = ReviewState.Idle
     }
 
     fun deleteLog(log: DailyLog) {
