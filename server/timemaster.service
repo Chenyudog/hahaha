@@ -5,8 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=cyd
 WorkingDirectory=/home/cyd/hahaha_ws/server
-ExecStart=/home/cyd/hahaha_ws/server/.venv/bin/python /home/cyd/hahaha_ws/server/run.py
+# 依赖通过 pip3 install --user 安装在 /home/cyd/.local，以 cyd 用户运行即可加载
+ExecStart=/usr/bin/python3 /home/cyd/hahaha_ws/server/run.py
 Restart=always
 RestartSec=3
 
