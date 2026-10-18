@@ -43,6 +43,7 @@ fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val context = LocalContext.current
     var alsoLock by remember { mutableStateOf(false) }
     var timePickerTarget by remember { mutableStateOf<String?>(null) }
+    var showRestoreConfirm by remember { mutableStateOf(false) }
 
     val wallpaperPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -122,8 +123,29 @@ fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
 
+        Text("云端备份", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { vm.backupNow(context) },
+                enabled = !vm.backupBusy,
+                modifier = Modifier.weight(1f),
+            ) { Text("立即备份") }
+            OutlinedButton(
+                onClick = { showRestoreConfirm = true },
+                enabled = !vm.backupBusy,
+                modifier = Modifier.weight(1f),
+            ) { Text("从云端恢复") }
+        }
+        vm.backupMessage?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall)
+        }
+
+        HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("自动同步（App 启动与每小时）", modifier = Modifier.weight(1f))
+            Text("自动同步（App 启动与每小时，仅 WiFi）", modifier = Modifier.weight(1f))
             Switch(checked = vm.autoSync, onCheckedChange = { vm.updateAutoSync(it) })
         }
         Spacer(Modifier.height(8.dp))
@@ -139,6 +161,23 @@ fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
             )
         }
         Spacer(Modifier.height(24.dp))
+    }
+
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false },
+            title = { Text("从云端恢复？") },
+            text = { Text("将用服务器上最近一次备份覆盖手机本地全部数据，确定继续？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRestoreConfirm = false
+                    vm.restore(context)
+                }) { Text("恢复", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirm = false }) { Text("取消") }
+            },
+        )
     }
 
     timePickerTarget?.let { target ->

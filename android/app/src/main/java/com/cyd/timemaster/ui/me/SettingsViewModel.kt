@@ -10,6 +10,7 @@ import com.cyd.timemaster.data.AppGraph
 import com.cyd.timemaster.data.remote.ApiClient
 import com.cyd.timemaster.data.remote.PairRequest
 import com.cyd.timemaster.reminder.ReminderScheduler
+import com.cyd.timemaster.sync.SyncManager
 import com.cyd.timemaster.util.WallpaperSetter
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,43 @@ class SettingsViewModel : ViewModel() {
 
     var wallpaperMessage by mutableStateOf<String?>(null)
         private set
+
+    var backupMessage by mutableStateOf<String?>(null)
+        private set
+    var backupBusy by mutableStateOf(false)
+        private set
+
+    fun backupNow(context: Context) {
+        if (backupBusy) return
+        backupBusy = true
+        backupMessage = "备份中…"
+        AppGraph.scope.launch {
+            val outcome = SyncManager.backupNow(context.applicationContext)
+            AppGraph.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                backupBusy = false
+                backupMessage = when (outcome) {
+                    is SyncManager.Outcome.Ok -> outcome.message
+                    is SyncManager.Outcome.Fail -> outcome.message
+                }
+            }
+        }
+    }
+
+    fun restore(context: Context) {
+        if (backupBusy) return
+        backupBusy = true
+        backupMessage = "恢复中…"
+        AppGraph.scope.launch {
+            val outcome = SyncManager.restore(context.applicationContext)
+            AppGraph.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                backupBusy = false
+                backupMessage = when (outcome) {
+                    is SyncManager.Outcome.Ok -> outcome.message
+                    is SyncManager.Outcome.Fail -> outcome.message
+                }
+            }
+        }
+    }
 
     fun updateServerBase(v: String) { serverBase = v; pairingMessage = null }
     fun updatePairCode(v: String) { pairCode = v; pairingMessage = null }
