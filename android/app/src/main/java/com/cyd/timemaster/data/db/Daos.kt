@@ -73,6 +73,9 @@ interface LogImageDao {
     @Query("SELECT * FROM log_images WHERE logUuid = :logUuid")
     fun observeForLog(logUuid: String): Flow<List<LogImage>>
 
+    @Query("SELECT * FROM log_images")
+    fun observeAll(): Flow<List<LogImage>>
+
     @Query("SELECT * FROM log_images WHERE logUuid = :logUuid")
     suspend fun forLog(logUuid: String): List<LogImage>
 

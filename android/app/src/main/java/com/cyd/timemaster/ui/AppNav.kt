@@ -69,7 +69,16 @@ fun AppRoot() {
         ) {
             composable("timer") { TimerScreen() }
             composable("stats") { StatsScreen() }
-            composable("log") { LogScreen() }
+            composable("log") {
+                LogScreen(onEditLog = { uuid -> navController.navigate("log_edit/$uuid") })
+            }
+            composable("log_edit/{uuid}") { entry ->
+                val uuid = entry.arguments?.getString("uuid")
+                LogEditScreen(
+                    logUuid = uuid?.takeIf { it != "new" },
+                    onDone = { navController.popBackStack() },
+                )
+            }
             composable("todo") { TodoScreen() }
             composable("me") { MeScreen() }
         }
