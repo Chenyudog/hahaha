@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,13 +61,18 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LogEditScreen(logUuid: String?, onDone: () -> Unit) {
-    val vm: LogViewModel = viewModel(key = logUuid ?: "new", factory = LogViewModel.Factory(logUuid))
+fun LogEditScreen(logUuid: String?, initialFolderUuid: String?, onDone: () -> Unit) {
+    val vm: LogViewModel = viewModel(
+        key = logUuid ?: "new",
+        factory = LogViewModel.Factory(logUuid, initialFolderUuid),
+    )
     val context = LocalContext.current
     val date by vm.date.collectAsState()
     val content by vm.content.collectAsState()
     val images by vm.images.collectAsState()
     val reviewState by vm.reviewState.collectAsState()
+    val folders by vm.folders.collectAsState()
+    val folderUuid by vm.folderUuid.collectAsState()
 
     val pickLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(9)
@@ -104,6 +110,25 @@ fun LogEditScreen(logUuid: String?, onDone: () -> Unit) {
                 .padding(16.dp),
         ) {
             Text("日期：$date", style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(4.dp))
+            // 归属文件夹
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                FilterChip(
+                    selected = folderUuid == null,
+                    onClick = { vm.updateFolder(null) },
+                    label = { Text("未分类") },
+                )
+                folders.forEach { folder ->
+                    FilterChip(
+                        selected = folderUuid == folder.uuid,
+                        onClick = { vm.updateFolder(folder.uuid) },
+                        label = { Text(folder.name, maxLines = 1) },
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = content,

@@ -23,13 +23,22 @@ data class TimeRecord(
     val updatedAt: String,
 )
 
-/** 复习日志：按天记录"今天干了什么" */
+/** 文件夹：日志与待办共用的分组（如按日期命名"2026-10-20"） */
+@Entity(tableName = "folders")
+data class Folder(
+    @PrimaryKey val uuid: String,
+    val name: String,
+    val createdAt: String,
+)
+
+/** 复习日志：按天记录"今天干了什么"；folderUuid 为 null 表示未分类 */
 @Entity(tableName = "daily_logs")
 data class DailyLog(
     @PrimaryKey val uuid: String,
     val date: String,          // yyyy-MM-dd
     val content: String,
     val updatedAt: String,
+    val folderUuid: String? = null,
 )
 
 /** 日志图片：localPath 指向应用私有目录中的文件 */
@@ -42,7 +51,7 @@ data class LogImage(
     val updatedAt: String,
 )
 
-/** 待办 */
+/** 待办；folderUuid 为 null 表示未分类 */
 @Entity(tableName = "todos")
 data class Todo(
     @PrimaryKey val uuid: String,
@@ -52,6 +61,7 @@ data class Todo(
     val status: String = "pending",   // pending / done
     val doneAt: Long? = null,
     val updatedAt: String,
+    val folderUuid: String? = null,
 )
 
 /** AI 直连调用流水：手机本地记账（v0.8.0 起 AI 不再经电脑中转） */

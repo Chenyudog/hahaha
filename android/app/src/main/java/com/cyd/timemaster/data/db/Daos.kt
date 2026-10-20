@@ -54,6 +54,15 @@ interface DailyLogDao {
     @Query("SELECT * FROM daily_logs ORDER BY date DESC, updatedAt DESC")
     fun observeAll(): Flow<List<DailyLog>>
 
+    @Query("SELECT * FROM daily_logs WHERE folderUuid = :folderUuid ORDER BY date DESC, updatedAt DESC")
+    fun observeInFolder(folderUuid: String): Flow<List<DailyLog>>
+
+    @Query("SELECT * FROM daily_logs WHERE folderUuid IS NULL ORDER BY date DESC, updatedAt DESC")
+    fun observeUncategorized(): Flow<List<DailyLog>>
+
+    @Query("UPDATE daily_logs SET folderUuid = NULL WHERE folderUuid = :folderUuid")
+    suspend fun clearFolder(folderUuid: String)
+
     @Query("SELECT * FROM daily_logs WHERE date = :date LIMIT 1")
     fun observeByDate(date: String): Flow<DailyLog?>
 
@@ -97,6 +106,15 @@ interface TodoDao {
     @Query("SELECT * FROM todos ORDER BY status, remindAt IS NULL, remindAt, updatedAt DESC")
     fun observeAll(): Flow<List<Todo>>
 
+    @Query("SELECT * FROM todos WHERE folderUuid = :folderUuid ORDER BY status, remindAt IS NULL, remindAt, updatedAt DESC")
+    fun observeInFolder(folderUuid: String): Flow<List<Todo>>
+
+    @Query("SELECT * FROM todos WHERE folderUuid IS NULL ORDER BY status, remindAt IS NULL, remindAt, updatedAt DESC")
+    fun observeUncategorized(): Flow<List<Todo>>
+
+    @Query("UPDATE todos SET folderUuid = NULL WHERE folderUuid = :folderUuid")
+    suspend fun clearFolder(folderUuid: String)
+
     @Query("SELECT * FROM todos WHERE status = 'pending'")
     suspend fun pending(): List<Todo>
 
@@ -106,6 +124,23 @@ interface TodoDao {
     @Upsert suspend fun upsert(todo: Todo)
 
     @Query("DELETE FROM todos WHERE uuid = :uuid")
+    suspend fun delete(uuid: String)
+}
+
+@Dao
+interface FolderDao {
+    @Query("SELECT * FROM folders ORDER BY createdAt")
+    fun observeAll(): Flow<List<Folder>>
+
+    @Query("SELECT * FROM folders")
+    suspend fun all(): List<Folder>
+
+    @Query("SELECT * FROM folders WHERE uuid = :uuid")
+    suspend fun byUuid(uuid: String): Folder?
+
+    @Upsert suspend fun upsert(folder: Folder)
+
+    @Query("DELETE FROM folders WHERE uuid = :uuid")
     suspend fun delete(uuid: String)
 }
 

@@ -10,24 +10,34 @@ import com.cyd.timemaster.ai.DeepSeekClient
 import com.cyd.timemaster.data.AppGraph
 import com.cyd.timemaster.data.db.AgentCall
 import com.cyd.timemaster.data.db.DailyLog
+import com.cyd.timemaster.data.db.Folder
+import com.cyd.timemaster.data.db.FolderFilters
 import com.cyd.timemaster.data.db.LogImage
+import com.cyd.timemaster.data.remote.ApiClient
+import com.cyd.timemaster.data.remote.PairRequest
+import com.cyd.timemaster.reminder.ReminderScheduler
+import com.cyd.timemaster.util.WallpaperSetter
 import com.cyd.timemaster.util.deleteQuietly
 import com.cyd.timemaster.util.newId
 import com.cyd.timemaster.util.nowIso
 import com.cyd.timemaster.util.today
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class LogViewModel(private val logUuid: String?) : ViewModel() {
+@OptIn(ExperimentalCoroutinesApi::class)
+class LogViewModel(private val logUuid: String?, private val initialFolderUuid: String?) : ViewModel() {
     private val logDao = AppGraph.db.dailyLogDao()
     private val imageDao = AppGraph.db.logImageDao()
+    private val folderDao = AppGraph.db.folderDao()
 
     /** 数据库行 uuid：编辑已有日志时等于传入值，新建时立即生成 */
     private val rowUuid: String = logUuid ?: newId()
@@ -36,28 +46,51 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
     val logs: StateFlow<List<DailyLog>> = logDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val folders: StateFlow<List<Folder>> = folderDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** logUuid → 该日志的图片列表（列表页缩略图用） */
     val imagesByLog: StateFlow<Map<String, List<LogImage>>> = imageDao.observeAll()
         .map { list -> list.groupBy { it.logUuid } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
+    /** 当前视图过滤：全部 / 未分类 / 某文件夹（FolderFilters） */
+    val filter = MutableStateFlow(FolderFilters.ALL)
+    val visibleLogs: StateFlow<List<DailyLog>> = filter
+        .flatMapLatest { f ->
+            when (f) {
+                FolderFilters.ALL -> logDao.observeAll()
+                FolderFilters.UNCAT -> logDao.observeUncategorized()
+                else -> logDao.observeInFolder(f)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val date = MutableStateFlow(today())
     val content = MutableStateFlow("")
+    val folderUuid = MutableStateFlow(initialFolderUuid)
     val images = MutableStateFlow<List<LogImage>>(emptyList())
 
     init {
         viewModelScope.launch {
             if (isNew) {
                 // 先落一行空日志，图片操作才有挂靠；退出时若仍为空会自动清理
-                logDao.upsert(DailyLog(uuid = rowUuid, date = today(), content = "", updatedAt = nowIso()))
+                logDao.upsert(
+                    DailyLog(uuid = rowUuid, date = today(), content = "", updatedAt = nowIso(), folderUuid = initialFolderUuid)
+                )
             } else {
                 logDao.byUuid(rowUuid)?.let { log ->
                     date.value = log.date
                     content.value = log.content
+                    folderUuid.value = log.folderUuid
                 }
                 imageDao.observeForLog(rowUuid).collect { images.value = it }
             }
         }
+    }
+
+    fun setFilter(f: String) {
+        filter.value = f
     }
 
     fun updateContent(text: String) {
@@ -70,11 +103,42 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
         save()
     }
 
+    fun updateFolder(uuid: String?) {
+        folderUuid.value = uuid
+        save()
+    }
+
     fun save() {
         AppGraph.scope.launch {
             logDao.upsert(
-                DailyLog(uuid = rowUuid, date = date.value, content = content.value, updatedAt = nowIso())
+                DailyLog(
+                    uuid = rowUuid, date = date.value, content = content.value,
+                    updatedAt = nowIso(), folderUuid = folderUuid.value,
+                )
             )
+        }
+    }
+
+    // ---- 文件夹管理 ----
+
+    fun createFolder(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        AppGraph.scope.launch { folderDao.upsert(Folder(uuid = newId(), name = trimmed, createdAt = nowIso())) }
+    }
+
+    fun renameFolder(folder: Folder, newName: String) {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) return
+        AppGraph.scope.launch { folderDao.upsert(folder.copy(name = trimmed)) }
+    }
+
+    /** 删除文件夹：里面的日志/待办回到未分类，不删内容 */
+    fun deleteFolder(folder: Folder) {
+        AppGraph.scope.launch {
+            logDao.clearFolder(folder.uuid)
+            AppGraph.db.todoDao().clearFolder(folder.uuid)
+            folderDao.delete(folder.uuid)
         }
     }
 
@@ -120,7 +184,7 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
         }
     }
 
-    // ---- AI 复习巩固（v0.8.0 起手机直连 DeepSeek，不经过电脑）----
+    // ---- AI 复习巩固（手机直连 DeepSeek）----
 
     sealed interface ReviewState {
         data object Idle : ReviewState
@@ -133,7 +197,7 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
 
     fun requestReview() {
         val text = content.value.trim()
-        if (text.isEmpty()) return
+        if (text.isEmpty() || reviewState.value == ReviewState.Loading) return
         val settings = AppGraph.settings
         if (!settings.aiReady) {
             reviewState.value = ReviewState.Error("请先到「我的」页 → AI 直连（DeepSeek）配置 API Key")
@@ -181,8 +245,12 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
         }
     }
 
-    class Factory(private val logUuid: String?) : ViewModelProvider.Factory {
+    class Factory(
+        private val logUuid: String?,
+        private val initialFolderUuid: String? = null,
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = LogViewModel(logUuid) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            LogViewModel(logUuid, initialFolderUuid) as T
     }
 }

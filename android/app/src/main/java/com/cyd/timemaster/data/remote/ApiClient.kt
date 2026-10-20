@@ -97,6 +97,7 @@ data class DailyLogDto(
     val date: String = "",
     val content: String = "",
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("folder_uuid") val folderUuid: String? = null,
 )
 
 @Serializable
@@ -116,10 +117,19 @@ data class TodoDto(
     val status: String = "pending",
     @SerialName("done_at") val doneAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("folder_uuid") val folderUuid: String? = null,
+)
+
+@Serializable
+data class FolderDto(
+    val uuid: String,
+    val name: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable
 data class Snapshot(
+    val folders: List<FolderDto> = emptyList(),
     val categories: List<CategoryDto> = emptyList(),
     @SerialName("time_records") val timeRecords: List<TimeRecordDto> = emptyList(),
     @SerialName("daily_logs") val dailyLogs: List<DailyLogDto> = emptyList(),

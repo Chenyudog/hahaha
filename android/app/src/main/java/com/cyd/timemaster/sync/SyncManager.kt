@@ -6,12 +6,14 @@ import com.cyd.timemaster.data.remote.ApiClient
 import com.cyd.timemaster.data.remote.BackupAck
 import com.cyd.timemaster.data.remote.CategoryDto
 import com.cyd.timemaster.data.remote.DailyLogDto
+import com.cyd.timemaster.data.remote.FolderDto
 import com.cyd.timemaster.data.remote.LogImageDto
 import com.cyd.timemaster.data.remote.Snapshot
 import com.cyd.timemaster.data.remote.TimeRecordDto
 import com.cyd.timemaster.data.remote.TodoDto
 import com.cyd.timemaster.data.db.Category
 import com.cyd.timemaster.data.db.DailyLog
+import com.cyd.timemaster.data.db.Folder
 import com.cyd.timemaster.data.db.LogImage
 import com.cyd.timemaster.data.db.TimeRecord
 import com.cyd.timemaster.data.db.Todo
@@ -85,6 +87,9 @@ object SyncManager {
                 val db = AppGraph.db
                 db.clearAllTables()
 
+                snap.folders.forEach {
+                    db.folderDao().upsert(Folder(it.uuid, it.name, it.createdAt ?: nowIso()))
+                }
                 snap.categories.forEach {
                     db.categoryDao().upsert(
                         Category(it.uuid, it.name, it.color?.toLongOrNull() ?: 0xFF607D8BL, it.updatedAt ?: nowIso())
@@ -99,13 +104,13 @@ object SyncManager {
                     )
                 }
                 snap.dailyLogs.forEach {
-                    db.dailyLogDao().upsert(DailyLog(it.uuid, it.date, it.content, it.updatedAt ?: nowIso()))
+                    db.dailyLogDao().upsert(DailyLog(it.uuid, it.date, it.content, it.updatedAt ?: nowIso(), it.folderUuid))
                 }
                 snap.todos.forEach {
                     db.todoDao().upsert(
                         Todo(
                             it.uuid, it.content, it.dueAt?.toLongOrNull(), it.remindAt?.toLongOrNull(),
-                            it.status, it.doneAt?.toLongOrNull(), it.updatedAt ?: nowIso(),
+                            it.status, it.doneAt?.toLongOrNull(), it.updatedAt ?: nowIso(), it.folderUuid,
                         )
                     )
                 }
@@ -148,6 +153,9 @@ object SyncManager {
     suspend fun buildSnapshot(): Snapshot = withContext(Dispatchers.IO) {
         val db = AppGraph.db
         Snapshot(
+            folders = db.folderDao().all().map {
+                FolderDto(it.uuid, it.name, it.createdAt)
+            },
             categories = db.categoryDao().all().map {
                 CategoryDto(it.uuid, it.name, it.color.toString(), it.updatedAt)
             },
@@ -155,7 +163,7 @@ object SyncManager {
                 TimeRecordDto(it.uuid, it.categoryUuid, it.startAt.toString(), it.endAt?.toString(), it.note, it.updatedAt)
             },
             dailyLogs = db.dailyLogDao().all().map {
-                DailyLogDto(it.uuid, it.date, it.content, it.updatedAt)
+                DailyLogDto(it.uuid, it.date, it.content, it.updatedAt, it.folderUuid)
             },
             logImages = db.logImageDao().all().map {
                 LogImageDto(it.uuid, it.logUuid, it.remoteId, it.updatedAt)
@@ -163,7 +171,7 @@ object SyncManager {
             todos = db.todoDao().all().map {
                 TodoDto(
                     it.uuid, it.content, it.dueAt?.toString(), it.remindAt?.toString(),
-                    it.status, it.doneAt?.toString(), it.updatedAt,
+                    it.status, it.doneAt?.toString(), it.updatedAt, it.folderUuid,
                 )
             },
         )

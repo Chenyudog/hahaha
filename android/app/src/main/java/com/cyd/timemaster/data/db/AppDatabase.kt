@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Category::class, TimeRecord::class, DailyLog::class, LogImage::class, Todo::class, AgentCall::class],
-    version = 2,
+    entities = [Category::class, TimeRecord::class, DailyLog::class, LogImage::class, Todo::class, AgentCall::class, Folder::class],
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -19,6 +19,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun logImageDao(): LogImageDao
     abstract fun todoDao(): TodoDao
     abstract fun agentCallDao(): AgentCallDao
+    abstract fun folderDao(): FolderDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -36,10 +37,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v2→v3：新增文件夹表，日志/待办挂 folderUuid（保留原有数据） */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folders` (" +
+                        "`uuid` TEXT NOT NULL PRIMARY KEY, " +
+                        "`name` TEXT NOT NULL, `createdAt` TEXT NOT NULL)"
+                )
+                db.execSQL("ALTER TABLE `daily_logs` ADD COLUMN `folderUuid` TEXT")
+                db.execSQL("ALTER TABLE `todos` ADD COLUMN `folderUuid` TEXT")
+            }
+        }
+
         fun get(context: Context): AppDatabase = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(
                 context.applicationContext, AppDatabase::class.java, "timemaster.db"
-            ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
         }
     }
 }

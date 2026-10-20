@@ -73,13 +73,17 @@ fun AppRoot() {
             composable("timer") { TimerScreen() }
             composable("stats") { StatsScreen() }
             composable("log") {
-                LogScreen(onEditLog = { uuid -> navController.navigate("log_edit/$uuid") })
+                LogScreen(onEditLog = { uuid, folder ->
+                    navController.navigate("log_edit/$uuid?folder=${folder ?: ""}")
+                })
             }
             composable("ai") { com.cyd.timemaster.ui.ai.ChatScreen() }
-            composable("log_edit/{uuid}") { entry ->
+            composable("log_edit/{uuid}?folder={folder}") { entry ->
                 val uuid = entry.arguments?.getString("uuid")
+                val folder = entry.arguments?.getString("folder")?.takeIf { it.isNotEmpty() }
                 LogEditScreen(
                     logUuid = uuid?.takeIf { it != "new" },
+                    initialFolderUuid = folder,
                     onDone = { navController.popBackStack() },
                 )
             }

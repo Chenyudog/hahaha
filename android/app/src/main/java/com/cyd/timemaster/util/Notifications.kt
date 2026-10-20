@@ -39,7 +39,19 @@ object Notifications {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    /** 常驻计时通知：setUsesChronometer 让系统自动刷新已计时长，无需轮询 */
+    /** 通知栏"结束计时"按钮 */
+    fun stopTimerIntent(context: Context): PendingIntent = PendingIntent.getService(
+        context, 1,
+        Intent(context, com.cyd.timemaster.service.TimerService::class.java)
+            .setAction(com.cyd.timemaster.service.TimerService.ACTION_STOP),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    /**
+     * 常驻计时通知：setUsesChronometer 让系统自动刷新已计时长，无需轮询。
+     * 状态栏左上角会显示小图标（Android 限制：状态栏只能放图标，文字在通知栏/锁屏）。
+     * VISIBILITY_PUBLIC 保证锁屏直接可见。
+     */
     fun timerNotification(context: Context, categoryName: String, startAt: Long): Notification =
         NotificationCompat.Builder(context, CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_stat_timer)
@@ -49,7 +61,9 @@ object Notifications {
             .setOnlyAlertOnce(true)
             .setUsesChronometer(true)
             .setWhen(startAt)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(contentIntent(context))
+            .addAction(0, "结束计时", stopTimerIntent(context))
             .build()
 
     fun postReminder(context: Context, id: Int, title: String, text: String, openApp: Boolean = true) {

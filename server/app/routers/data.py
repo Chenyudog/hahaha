@@ -17,11 +17,12 @@ from ..deps import require_token
 router = APIRouter(prefix="/api/v1", tags=["data"], dependencies=[Depends(require_token)])
 
 FIELDS = {
+    "folders": ["uuid", "name", "created_at"],
     "categories": ["uuid", "name", "color", "updated_at"],
     "time_records": ["uuid", "category_uuid", "start_at", "end_at", "note", "updated_at"],
-    "daily_logs": ["uuid", "date", "content", "updated_at"],
+    "daily_logs": ["uuid", "date", "content", "updated_at", "folder_uuid"],
     "log_images": ["uuid", "log_uuid", "remote_id", "updated_at"],
-    "todos": ["uuid", "content", "due_at", "remind_at", "status", "done_at", "updated_at"],
+    "todos": ["uuid", "content", "due_at", "remind_at", "status", "done_at", "updated_at", "folder_uuid"],
 }
 
 
