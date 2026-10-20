@@ -41,6 +41,18 @@ class SettingsStore(context: Context) {
         get() = sp.getBoolean(KEY_AUTO_SYNC, true)
         set(value) = sp.edit().putBoolean(KEY_AUTO_SYNC, value).apply()
 
+    // ---- AI 直连（v0.8.0：手机直接调 DeepSeek，不经过电脑）----
+
+    var aiKey: String
+        get() = sp.getString(KEY_AI_KEY, "").orEmpty()
+        set(value) = sp.edit().putString(KEY_AI_KEY, value.trim()).apply()
+
+    var aiModel: String
+        get() = sp.getString(KEY_AI_MODEL, "deepseek-flash").orEmpty()
+        set(value) = sp.edit().putString(KEY_AI_MODEL, value.trim()).apply()
+
+    val aiReady: Boolean get() = aiKey.isNotEmpty()
+
     fun pair(base: String, token: String) {
         serverBase = base
         this.token = token
@@ -54,5 +66,7 @@ class SettingsStore(context: Context) {
         const val KEY_MORNING = "morning_summary_time"
         const val KEY_NIGHTLY = "nightly_plan_time"
         const val KEY_AUTO_SYNC = "auto_sync"
+        const val KEY_AI_KEY = "ai_key"
+        const val KEY_AI_MODEL = "ai_model"
     }
 }

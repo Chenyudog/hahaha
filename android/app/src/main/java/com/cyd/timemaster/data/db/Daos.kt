@@ -2,6 +2,7 @@ package com.cyd.timemaster.data.db
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
@@ -106,4 +107,12 @@ interface TodoDao {
 
     @Query("DELETE FROM todos WHERE uuid = :uuid")
     suspend fun delete(uuid: String)
+}
+
+@Dao
+interface AgentCallDao {
+    @Query("SELECT * FROM agent_calls ORDER BY id DESC")
+    fun observeAll(): Flow<List<AgentCall>>
+
+    @Insert suspend fun insert(call: AgentCall)
 }

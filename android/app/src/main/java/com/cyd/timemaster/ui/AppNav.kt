@@ -3,6 +3,7 @@ package com.cyd.timemaster.ui
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Person
@@ -33,6 +34,7 @@ private val TABS = listOf(
     Tab("timer", "计时", Icons.Filled.AccessTime),
     Tab("stats", "统计", Icons.Filled.BarChart),
     Tab("log", "日志", Icons.Filled.EditNote),
+    Tab("ai", "AI", Icons.Filled.AutoAwesome),
     Tab("todo", "待办", Icons.Filled.TaskAlt),
     Tab("me", "我的", Icons.Filled.Person),
 )
@@ -73,6 +75,7 @@ fun AppRoot() {
             composable("log") {
                 LogScreen(onEditLog = { uuid -> navController.navigate("log_edit/$uuid") })
             }
+            composable("ai") { com.cyd.timemaster.ui.ai.ChatScreen() }
             composable("log_edit/{uuid}") { entry ->
                 val uuid = entry.arguments?.getString("uuid")
                 LogEditScreen(

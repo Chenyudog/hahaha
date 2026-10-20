@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cyd.timemaster.util.parseHm
@@ -121,6 +122,37 @@ fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
             Spacer(Modifier.height(4.dp))
             Text(it, style = MaterialTheme.typography.bodySmall)
         }
+
+        HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+        Text("AI 直连（DeepSeek，无需电脑）", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = vm.aiKey,
+            onValueChange = { vm.updateAiKey(it) },
+            label = { Text(if (vm.aiReady) "API Key（已配置）" else "API Key（sk-开头）") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { vm.testAi() },
+                enabled = !vm.aiTesting,
+                modifier = Modifier.weight(1f),
+            ) { Text(if (vm.aiTesting) "测试中…" else "测试连接") }
+        }
+        vm.aiTestMessage?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "模型：deepseek-flash · Key 只保存在本机 · 花用在「AI 花费统计」里看",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         HorizontalDivider(Modifier.padding(vertical = 16.dp))
 

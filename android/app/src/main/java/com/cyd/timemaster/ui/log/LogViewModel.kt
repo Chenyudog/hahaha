@@ -5,11 +5,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.cyd.timemaster.ai.ChatMessage
+import com.cyd.timemaster.ai.DeepSeekClient
 import com.cyd.timemaster.data.AppGraph
+import com.cyd.timemaster.data.db.AgentCall
 import com.cyd.timemaster.data.db.DailyLog
 import com.cyd.timemaster.data.db.LogImage
-import com.cyd.timemaster.data.remote.ApiClient
-import com.cyd.timemaster.data.remote.ReviewRequest
 import com.cyd.timemaster.util.deleteQuietly
 import com.cyd.timemaster.util.newId
 import com.cyd.timemaster.util.nowIso
@@ -119,7 +120,7 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
         }
     }
 
-    // ---- AI 复习巩固（v0.6）----
+    // ---- AI 复习巩固（v0.8.0 起手机直连 DeepSeek，不经过电脑）----
 
     sealed interface ReviewState {
         data object Idle : ReviewState
@@ -134,20 +135,34 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
         val text = content.value.trim()
         if (text.isEmpty()) return
         val settings = AppGraph.settings
-        if (!settings.isPaired) {
-            reviewState.value = ReviewState.Error("请先到「我的」页完成服务器配对")
+        if (!settings.aiReady) {
+            reviewState.value = ReviewState.Error("请先到「我的」页 → AI 直连（DeepSeek）配置 API Key")
             return
         }
         reviewState.value = ReviewState.Loading
         AppGraph.scope.launch {
             try {
-                val resp = ApiClient.api(settings.serverBase, settings.token)
-                    .review(ReviewRequest(text = text))
-                reviewState.value = ReviewState.Success(resp.content, resp.cost)
-            } catch (e: Exception) {
-                reviewState.value = ReviewState.Error(
-                    "AI 调用失败：${e.message ?: "网络错误"}（确认电脑服务器已启动、手机与其在同一网络）"
+                val result = DeepSeekClient.chat(
+                    settings.aiKey, settings.aiModel,
+                    listOf(
+                        ChatMessage(
+                            "system",
+                            "你是帮助用户复习巩固的中文学习助手。要求：1.输出非常简短，总共不超过150字；" +
+                                "2.格式固定：最多3条【要点】回顾 + 2个【自测】问题；3.不要客套话。"
+                        ),
+                        ChatMessage("user", text.take(4000)),
+                    ),
                 )
+                AppGraph.db.agentCallDao().insert(
+                    AgentCall(
+                        ts = System.currentTimeMillis(), model = result.model,
+                        promptTokens = result.promptTokens, completionTokens = result.completionTokens,
+                        cost = result.costYuan, purpose = "daily_review",
+                    )
+                )
+                reviewState.value = ReviewState.Success(result.content, result.costYuan)
+            } catch (e: Exception) {
+                reviewState.value = ReviewState.Error("AI 调用失败：${e.message ?: "网络错误"}")
             }
         }
     }

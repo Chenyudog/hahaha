@@ -53,3 +53,15 @@ data class Todo(
     val doneAt: Long? = null,
     val updatedAt: String,
 )
+
+/** AI 直连调用流水：手机本地记账（v0.8.0 起 AI 不再经电脑中转） */
+@Entity(tableName = "agent_calls")
+data class AgentCall(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val ts: Long,
+    val model: String,
+    val promptTokens: Int,
+    val completionTokens: Int,
+    val cost: Double,
+    val purpose: String,
+)

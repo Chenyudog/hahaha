@@ -6,7 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.cyd.timemaster.ai.ChatMessage
+import com.cyd.timemaster.ai.DeepSeekClient
 import com.cyd.timemaster.data.AppGraph
+import com.cyd.timemaster.data.db.AgentCall
 import com.cyd.timemaster.data.remote.ApiClient
 import com.cyd.timemaster.data.remote.PairRequest
 import com.cyd.timemaster.reminder.ReminderScheduler
@@ -39,6 +42,53 @@ class SettingsViewModel : ViewModel() {
 
     var wallpaperMessage by mutableStateOf<String?>(null)
         private set
+
+    // ---- AI 直连配置 ----
+
+    var aiKey by mutableStateOf(settings.aiKey)
+        private set
+    var aiTestMessage by mutableStateOf<String?>(null)
+        private set
+    var aiTesting by mutableStateOf(false)
+        private set
+
+    val aiReady: Boolean get() = settings.aiReady
+
+    fun updateAiKey(v: String) {
+        aiKey = v
+        settings.aiKey = v
+    }
+
+    /** 用一条极短的消息真实调一次 DeepSeek，验证 Key 可用 */
+    fun testAi() {
+        if (aiTesting) return
+        if (!settings.aiReady) {
+            aiTestMessage = "先填入 API Key"
+            return
+        }
+        aiTesting = true
+        aiTestMessage = "测试中…"
+        AppGraph.scope.launch {
+            try {
+                val result = DeepSeekClient.chat(
+                    settings.aiKey, settings.aiModel,
+                    listOf(ChatMessage("user", "只回复两个字：成功")),
+                )
+                AppGraph.db.agentCallDao().insert(
+                    AgentCall(
+                        ts = System.currentTimeMillis(), model = result.model,
+                        promptTokens = result.promptTokens, completionTokens = result.completionTokens,
+                        cost = result.costYuan, purpose = "test",
+                    )
+                )
+                aiTestMessage = "✅ 连接成功（${result.model}，本次 ¥%.4f）".format(result.costYuan)
+            } catch (e: Exception) {
+                aiTestMessage = "❌ ${e.message}"
+            } finally {
+                aiTesting = false
+            }
+        }
+    }
 
     var backupMessage by mutableStateOf<String?>(null)
         private set
