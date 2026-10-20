@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cyd.timemaster.util.parseHm
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MeScreen(onOpenSpending: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val context = LocalContext.current

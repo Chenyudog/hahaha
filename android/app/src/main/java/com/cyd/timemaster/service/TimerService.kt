@@ -48,7 +48,7 @@ class TimerService : Service() {
     private fun startTimer(intent: Intent) {
         val uuid = intent.getStringExtra(EXTRA_CATEGORY_UUID)
         val name = intent.getStringExtra(EXTRA_CATEGORY_NAME).orEmpty()
-        val color = intent.getLongExtra(EXTRA_CATEGORY_COLOR, 0xFF607D8BUL)
+        val color = intent.getLongExtra(EXTRA_CATEGORY_COLOR, 0xFF607D8BL)
         if (uuid == null) {
             stopSelf()
             return
@@ -89,7 +89,7 @@ class TimerService : Service() {
             withContext(Dispatchers.Main) {
                 running.value = RunningTimer(
                     record.uuid, record.categoryUuid,
-                    category?.name ?: "(已删除事项)", category?.color ?: 0xFF607D8BUL,
+                    category?.name ?: "(已删除事项)", category?.color ?: 0xFF607D8BL,
                     record.startAt,
                 )
                 beginForeground(category?.name ?: "(已删除事项)", record.startAt)

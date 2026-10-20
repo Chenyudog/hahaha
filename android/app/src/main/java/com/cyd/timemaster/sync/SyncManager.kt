@@ -87,7 +87,7 @@ object SyncManager {
 
                 snap.categories.forEach {
                     db.categoryDao().upsert(
-                        Category(it.uuid, it.name, it.color?.toLongOrNull() ?: 0xFF607D8BUL, it.updatedAt ?: nowIso())
+                        Category(it.uuid, it.name, it.color?.toLongOrNull() ?: 0xFF607D8BL, it.updatedAt ?: nowIso())
                     )
                 }
                 snap.timeRecords.forEach {

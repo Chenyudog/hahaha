@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 data class Category(
     @PrimaryKey val uuid: String,
     val name: String,
-    val color: Long = 0xFF607D8BUL,
+    val color: Long = 0xFF607D8BL,
     val updatedAt: String,
 )
 

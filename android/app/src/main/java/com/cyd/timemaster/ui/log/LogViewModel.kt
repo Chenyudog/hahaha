@@ -50,11 +50,11 @@ class LogViewModel(private val logUuid: String?) : ViewModel() {
                 // 先落一行空日志，图片操作才有挂靠；退出时若仍为空会自动清理
                 logDao.upsert(DailyLog(uuid = rowUuid, date = today(), content = "", updatedAt = nowIso()))
             } else {
-                logDao.byUuid(logUuid)?.let { log ->
+                logDao.byUuid(rowUuid)?.let { log ->
                     date.value = log.date
                     content.value = log.content
                 }
-                imageDao.observeForLog(logUuid).collect { images.value = it }
+                imageDao.observeForLog(rowUuid).collect { images.value = it }
             }
         }
     }

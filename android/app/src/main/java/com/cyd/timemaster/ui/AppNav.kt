@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.cyd.timemaster.ui.log.LogEditScreen
 import com.cyd.timemaster.ui.log.LogScreen
 import com.cyd.timemaster.ui.me.MeScreen
 import com.cyd.timemaster.ui.stats.StatsScreen

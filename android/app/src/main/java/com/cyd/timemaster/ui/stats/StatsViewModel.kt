@@ -19,6 +19,7 @@ import java.time.LocalDate
 /** 一块饼图数据：某事项在统计时段内的累计时长 */
 data class StatSlice(val categoryName: String, val color: Long, val durationMs: Long)
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatsViewModel : ViewModel() {
     enum class Mode { DAY, WEEK, MONTH }
 
@@ -47,7 +48,7 @@ class StatsViewModel : ViewModel() {
                         val category = categories[categoryUuid]
                         StatSlice(
                             categoryName = category?.name ?: "(已删除事项)",
-                            color = category?.color ?: 0xFF9E9E9EUL,
+                            color = category?.color ?: 0xFF9E9E9EL,
                             durationMs = items.sumOf { it.second },
                         )
                     }

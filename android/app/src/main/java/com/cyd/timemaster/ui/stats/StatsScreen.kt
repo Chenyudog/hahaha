@@ -184,9 +184,10 @@ fun StatsScreen(vm: StatsViewModel = viewModel()) {
 private fun periodTitle(mode: Mode, date: LocalDate): String = when (mode) {
     Mode.DAY -> DAY_FMT.format(date)
     Mode.WEEK -> {
-        val monday = date.minus((date.dayOfWeek.value + 6) % 7, java.time.temporal.ChronoUnit.DAYS)
+        val monday = date.with(java.time.DayOfWeek.MONDAY)
         val sunday = monday.plusDays(6)
-        "第 ${"%02d".format(date.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.MONDAY, 1).weekOfWeekBasedYear()))}周（${monday.monthValue}.${monday.dayOfMonth}–${sunday.monthValue}.${sunday.dayOfMonth}）"
+        val week = date.get(java.time.temporal.WeekFields.of(java.time.DayOfWeek.MONDAY, 1).weekOfWeekBasedYear())
+        "第 ${"%02d".format(week)}周（${monday.monthValue}.${monday.dayOfMonth}–${sunday.monthValue}.${sunday.dayOfMonth}）"
     }
     Mode.MONTH -> MONTH_FMT.format(date)
 }

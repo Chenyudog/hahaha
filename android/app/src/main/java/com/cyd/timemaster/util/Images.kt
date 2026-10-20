@@ -32,11 +32,11 @@ fun decodeSampledBitmap(path: String, reqWidth: Int, reqHeight: Int): Bitmap? {
 
 @Composable
 fun rememberThumbnail(path: String, size: Int = 256): ImageBitmap? {
-    val state = remember(path) { produceState<ImageBitmap?>(null, path) {
+    val state = androidx.compose.runtime.produceState<ImageBitmap?>(null, path) {
         value = withContext(Dispatchers.IO) {
             decodeSampledBitmap(path, size, size)?.asImageBitmap()
         }
-    } }
+    }
     return state.value
 }
 

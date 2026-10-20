@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -62,9 +63,9 @@ import com.cyd.timemaster.util.formatDuration
 import java.time.format.DateTimeFormatter
 
 private val PALETTE = listOf(
-    0xFFF44336UL, 0xFFE91E63UL, 0xFF9C27B0UL, 0xFF3F51B5UL,
-    0xFF1E88E5UL, 0xFF009688UL, 0xFF4CAF50UL, 0xFFFF9800UL,
-    0xFF795548UL, 0xFF607D8BUL,
+    0xFFF44336L, 0xFFE91E63L, 0xFF9C27B0L, 0xFF3F51B5L,
+    0xFF1E88E5L, 0xFF009688L, 0xFF4CAF50L, 0xFFFF9800L,
+    0xFF795548L, 0xFF607D8BL,
 )
 
 private val HM_FMT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -227,6 +228,7 @@ private fun RunningCard(name: String, color: Long, elapsedMs: Long, onStop: () -
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun CategoryChips(
     categories: List<Category>,
@@ -325,7 +327,7 @@ private fun CategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = Text(if (initial == null) "新建事项" else "编辑事项"),
+        title = { Text(if (initial == null) "新建事项" else "编辑事项") },
         text = {
             Column {
                 OutlinedTextField(
@@ -370,6 +372,7 @@ private fun ColorDot(color: Long, selected: Long, onSelect: (Long) -> Unit) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EndTimeDialog(record: TimeRecord, onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
     val end = record.endAt ?: System.currentTimeMillis()
